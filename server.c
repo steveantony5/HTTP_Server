@@ -21,14 +21,14 @@
 #include<stdint.h>
 
 #define HEADER (500)
-#define LISTEN_MAX 10
+#define LISTEN_MAX (10)
 #define BUFFERSIZE (2048)
-/*
+#define HOME_FILE_TYPE (".html")
+
 void error(char *string)
 {
 	printf("%s\n",string);
 }
-*/
 
 int main(int argc, char *argv[])
 {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 
 	if(argc<2)// passing port number as command line argument
 	{
-	        perror("Please provide port number");
+	        error("Please provide port number");
 	        exit(1);
         }
 	
@@ -63,14 +63,17 @@ int main(int argc, char *argv[])
 	if(server_socket < 0)
 	{
 
-		perror("error on socket creation");
-		//exit(1);
+		error("error on socket creation");
+		exit(1);
 	}
 	memset(&server_address,0,sizeof(server_address));
 
 	/*Setting socket so as to reuse the port number*/
 	int true = 1;
-	setsockopt(server_socket,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int));
+	if(setsockopt(server_socket,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int)) < 0)
+	{
+		error("error on setsocket");
+	}
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr	= INADDR_ANY;
@@ -79,13 +82,13 @@ int main(int argc, char *argv[])
 	//bind the server socket with the remote client socket
 	if(bind(server_socket,(struct sockaddr*)&server_address,sizeof(server_address))<0)
 	{
-		perror("Binding failed");
+		error("Binding failed");
 	}
 
 
 	if(listen(server_socket,LISTEN_MAX) < 0)
 	{
-		perror("Error on listen");
+		error("Error on listen");
 	}
 	else
 		printf("\nlistening.....\n");
@@ -98,14 +101,15 @@ int main(int argc, char *argv[])
 		new_socket = accept(server_socket,(struct sockaddr*) &to_address, &clilen);
 		if(new_socket<0)
 		{
-			printf("\nerror on accept\n");
+			error("error on accept");
 		}
 		else
 		{
-			printf("\nConnection established...\n");
+			error("Connection established...");
 		}
 	
 		/*Creating child processes*/
+		/*Returns zero on successful child creation*/
 		if(!fork())
 		{
 start:
@@ -113,9 +117,10 @@ start:
 			memset(method,0,10);
 			memset(url,0,20);
 			memset(version,0,10);
-
+			
 			/*Receiving the request from client*/
 			recv(new_socket,request, HEADER,0);
+
 			printf("\n%s",request);
 			
 			/*Pipelining*/
@@ -139,7 +144,7 @@ start:
 			/*separating the parameters from request string*/
 		 	sscanf(request,"%s%s%s",method, url, version);
 			printf("\nRequest method - %s\n",method);
-			printf("Request url       - %s\n",url);
+			printf("Request url      - %s\n",url);
 			printf("HTTP Version     - %s\n",version);
 
 
@@ -148,11 +153,11 @@ start:
 			char url_path[100];
 			memset(url_path,0,100);
 
-			/*Setting the default file to display*/
+			/*Setting the default file to display as home page*/
 			if(strcmp(url,"/")==0)
 			{
-				strcpy(url_path,"www/www/index.html");
-				goto A;
+				strcpy(url_path,"index.html");
+				goto file_open;
 			}
 
 			/*Setting the url path for the file to open*/
@@ -165,48 +170,41 @@ start:
 			printf("URL : %s\n",url_path);
 			
 			/*Checks if the folder exists*/
-A:			fp = NULL;			
+file_open:		fp = NULL;			
 			fp = fopen(url_path,"rb");
-			int file_check = 0;
+			int file_size = 0;
 			if(fp!=NULL)
 			{
 				/*Checks if the file exists*/
 				if(fseek(fp,0,SEEK_END) < 0)
-					perror("error on seek");
-				
-				file_check= ftell(fp);
-				fseek(fp,0,SEEK_SET);
+					error("error on seek");
+
+				/*Calculates file size*/	
+				file_size= ftell(fp);
+				if(fseek(fp,0,SEEK_SET) < 0)
+					error("error on seek");
 			}
 
 			/*GET Request*/
 			/*Checks the request type, file existance, HTTP version number*/
-			if(((strcmp(method,"GET")==0))&&((strcmp(version,"HTTP/1.1")==0)||(strcmp(version,"HTTP/1.0")==0)) && (fp!=NULL)&&(file_check>=0))
+			if(((strcmp(method,"GET")==0))&&((strcmp(version,"HTTP/1.1")==0)||(strcmp(version,"HTTP/1.0")==0)) && (fp!=NULL)&&(file_size>=0))
 			{
 				printf("\nFile Exists\n");
-					
-				/*Calculating the size of requested file*/
-				fseek(fp,0,SEEK_END);
-				int file_size = 0;
-				file_size= ftell(fp);
-				fseek(fp,0,SEEK_SET);
-
-				printf("\nFile size %d\n",file_size);
+				
 				/*Converting file size from integer to string*/
 				sprintf(content_length,"%d",file_size);
 				
-				printf("\nContent length = %s\n",content_length);
+				/*Finding the file type of the requested file*/
 
-				/*storing the content type of the requested file*/
+				/*File type of default page*/
 				if(strcmp(url,"/")==0)
 				{
-					strcpy(content_type,".html");
-					printf("Content type %s\n",content_type);
+					strcpy(content_type,HOME_FILE_TYPE);
 				}
 				else
 				{
-					char *pt = strstr(url,".");
+					char *pt = strrchr(url,'.');
 					strcpy(content_type,pt);
-					printf("\nContent type %s\n",content_type);
 				}
 			
 				/*Forming the response header*/	
@@ -236,14 +234,13 @@ A:			fp = NULL;
 
 				/*Sending the response header*/
 				write(new_socket,response,strlen(response));
-				printf("\nresponse %s\n",response);
+				printf("\nResponse Header\n%s\n",response);
 
 				/*Reading the requested file*/
 				char *file = (char*)malloc(file_size);
 				if(file)
 				{
 					fread(file,1,file_size, fp);
-					//printf("File content\n%s\n",file);
 					/*Sending the requested file*/
 					write(new_socket,file,file_size);
 					free(file);
@@ -253,52 +250,38 @@ A:			fp = NULL;
 			}
 			/*POST Request*/
 			/*Checks request method, file existance, HTTP version*/
-			else if(((strcmp(method,"POST")==0))&&((strcmp(version,"HTTP/1.1")==0)||(strcmp(version,"HTTP/1.0")==0)) && (fp!=NULL)&&(file_check>=0))
+			else if(((strcmp(method,"POST")==0))&&((strcmp(version,"HTTP/1.1")==0)||(strcmp(version,"HTTP/1.0")==0)) && (fp!=NULL)&&(file_size>=0))
 			{
 				char postdata[400];
 				char postmessage[400];
-				int32_t length_postdata = 0;
 				int32_t length_total = 0;
-				int32_t file_size = 0;
-				char return_length[10];
+				char length_str[10];
 				printf("File Exists\n");
-				char *pointer = strstr(request,"Content-Length:");
-				sscanf(pointer,"%*s%d",&length_postdata);
+				
 				/*Storing the data to be posted*/
-				while(1)
-				{
-					pointer++;
-					if(*pointer == '\n')
-					{
-						pointer = pointer+2;
-						strcpy(postdata,pointer);
-						break;
-					}
-				}
-				printf("Postdata %s",postdata);
+				char *pointer = strrchr(request,'\n');
+				pointer++;
+				strcpy(postdata,pointer);
+
 
 				/*Data to be posted in html*/
 				sprintf(postmessage,"<html><body><pre><h1>%s<h1></pre>",postdata);
 
-				/*Calculating the requested file size*/
-				fseek(fp,0,SEEK_END);
-				file_size= ftell(fp);
-				fseek(fp,0,SEEK_SET);
+				/*Calculating the requested file size + Post data size*/
                                 printf("\nFile size %d\n",file_size);
-				length_total = file_size+strlen(postmessage);		
+				length_total = file_size+strlen(postmessage);	
+
 				/*Converting integer to string*/
-                                sprintf(return_length,"%d",length_total);
-                                printf("\nreturn length = %s\n",return_length);
+                                sprintf(length_str,"%d",length_total);
+                                printf("\nPostdata + File size = %s\n",length_str);
                                 if(strcmp(url,"/")==0)
                                 {
-                                        strcpy(content_type,".html");
-                                        printf("Content type %s\n",content_type);
+                                        strcpy(content_type,HOME_FILE_TYPE);
                                 }
                                 else
                                 {
-                                        char *pt = strstr(url,".");
+                                        char *pt = strrchr(url,'.');
                                         strcpy(content_type,pt);
-                                        printf("\nContent type %s\n",content_type);
  		                }
 
 		                 memset(response,0,sizeof(response));
@@ -312,7 +295,7 @@ A:			fp = NULL;
                                  }
                                  strcat(response,content_type);
                                  strcat(response,"\r\nContent-Length:");
-                                 strcat(response,return_length);
+                                 strcat(response,length_str);
 		                 strcat(response,"\r\nConnection:");
 				 if(alive!=NULL)
 			     	 {
@@ -325,14 +308,14 @@ A:			fp = NULL;
 				 strcat(response,"\r\n\r\n");
 				 write(new_socket,response,strlen(response));
 				 printf("Response\n%s",response);
-				 char *c = (char*)malloc(file_size);
-				 if(c)
+				 char *file = (char*)malloc(file_size);
+				 if(file)
 				 {
-					 fread(c,1,file_size, fp);
-					 printf("File content\n%s%s\n",postmessage,c);
+					 fread(file,1,file_size, fp);
+					 printf("File content\n%s%s\n",postmessage,file);
                                          write(new_socket,postmessage,strlen(postmessage));
-					 write(new_socket,c,file_size);
-					 free(c);
+					 write(new_socket,file,file_size);
+					 free(file);
 					 printf("\n*********************************\n");
 				}
 
@@ -354,6 +337,7 @@ A:			fp = NULL;
 				sprintf(message,"<html><body><h1> 500 Internal Server Error: %s </h1></body></html>",url);
 				strcat(response,"Content-Length: ");
 				int size_error = sizeof(message);
+				
 				/*Converting integer to string*/
 				char size_error_str[8];
 				sprintf(size_error_str,"%d",size_error);
@@ -386,12 +370,10 @@ A:			fp = NULL;
 				printf("Closing socket\n");
 			}
 		
-			printf("\nEnd of fork\n");			
 			exit(0);
 				
 		}
 		close(new_socket);
-		printf("\nClosing while\n");
 
 
 	}
