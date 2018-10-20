@@ -5,7 +5,7 @@ Flags = -Wall
 
 server : server.c
 
-	$(CC) $(Flags)server.c -o server
+	$(CC) $(Flags) server.c -o server
 
 clean:
 	rm -f server
