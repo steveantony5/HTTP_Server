@@ -1,1 +1,47 @@
+---------------------------------------------------------------------------------------
+To execute the server
+>> make
+>> ./server <port number>
 
+
+eg: ./server 8000
+
+-----------------------------------------------------------------------------------------
+HTTP methods implemented: GET, POST along with Pipelining and accepts multiple clients
+			  Supports HTTP version 1.0 and 1.1
+----------------------------------------------------------------------------------------
+
+GET method
+----------
+
+1) Accepts get requests from terminal or any commercial web browser
+2) Steps to invoke from web browser
+
+	<server address>:<port number>/<url of the file path>
+
+3) Error handling have been done to check if the requested file is present on the server folder
+4) Pipelining has been implemented with a socket timout of 10 seconds.
+5) Supports any file type
+
+----------------------------------------------------------------------------------------
+
+POST method
+-----------
+
+1) Accepts get requests from terminal.
+2) Steps to invoke POST method
+
+	(echo -en "POST /index.html HTTP/1.1\nHost: localhost\nConnection: keep-alive\nPOSTDATA"; sleep 5") | telnet <server address> <port number>
+
+3) Error handling have been done to check if the requested file is present on the server folder
+4) Supports any file type
+
+------------------------------------------------------------------------------------------
+
+Implementation of Pipelining:
+1) If the request contains "Connection: keep-active" , the socket is kept active for 10 seconds and servers any request received in the same socket.
+2) Steps to test pipelining
+
+	(echo -en "GET /index.html HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\n"; sleep 5; echo -en "GET /index.html HTTP/1.1\nHost: localhost\n\n") | telnet <server address> <port number>
+
+-----------------------------------------------------------------------------------------
