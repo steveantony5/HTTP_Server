@@ -46,7 +46,7 @@ void error(char *string)
 int main(int argc, char *argv[])
 {
 
-	/*creating the socket*/
+        /*creating the socket*/
 	int server_socket, new_socket;
 	
 	/*For request header*/
@@ -270,6 +270,18 @@ file_open:		fp = NULL;
 					printf("\n*********************************\n");
 				}
 
+				if(alive!=NULL)
+		                {
+		                        printf("\nSocket still active\n");
+		                        goto start;
+		                }
+		                else
+		                {
+		                        close(new_socket);
+		                        printf("Closing socket\n");
+		                }
+
+
 			}
 			/*--------------------------------------------------POST Request------------------------------------------------------------------*/
 			/*Checks request method, file existance, HTTP version*/
@@ -348,6 +360,18 @@ file_open:		fp = NULL;
 					 printf("\n*********************************\n");
 				}
 
+				if(alive!=NULL)
+				{
+				         printf("\nSocket still active\n");
+				         goto start;
+				}
+				else
+				{
+				         close(new_socket);
+				         printf("Closing socket\n");
+				}
+
+
 			}
 
 			/*---------------------------------------------Error handing Implementation----------------------------------------------*/
@@ -389,17 +413,21 @@ file_open:		fp = NULL;
 
 				write(new_socket,message,strlen(message));
 				printf("\n*************************************\n");
+				
+				if(alive!=NULL)
+	        		{
+				        printf("\nSocket still active\n");
+				        goto start;
+				}
+				else
+				{
+				        close(new_socket);
+				        printf("Closing socket\n");
+				}
 
 			}
 			fclose(fp);
-
-			if(alive!=NULL)
-				goto start;
-			else
-			{
-				close(new_socket);
-				printf("Closing socket\n");
-			}
+			
 			/*Exit the child process*/	
 			exit(0);
 				
