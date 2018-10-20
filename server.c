@@ -21,12 +21,19 @@
 #include<sys/stat.h>
 #include<stdint.h>
 
-
+/*Header length*/
 #define HEADER (500)
+
+/*Number of clients to listen*/
 #define LISTEN_MAX (10)
-#define BUFFERSIZE (2048)
+
+/*File type of default page*/
 #define HOME_FILE_TYPE (".html")
+
+/*Timeout value for socket if keep-alive is present in HTTP Header*/
 #define TIME_OUT_VALUE (10)
+
+/*File to be shown on default when url is given as '/'*/
 #define DEFAULT_FILE ("index.html")
 
 /*Error Function*/
@@ -35,6 +42,7 @@ void error(char *string)
 	printf("%s\n",string);
 }
 
+/*Main function*/
 int main(int argc, char *argv[])
 {
 
@@ -169,7 +177,13 @@ start:
 				goto file_open;
 			}
 
-			/*Setting the url path for the file to open*/
+			/*Setting the url path for the file to open
+			 *eg : /images/files/eg.txt
+			 *     has to be converted to
+			 *     images/files/eg.txt
+			 *
+			 *     This is done as to open the file using fopen*/
+
 			for(int i =0; i<len ; i++)
 			{
 				url_path[i] = url[i+1];
@@ -337,6 +351,7 @@ file_open:		fp = NULL;
 			}
 
 			/*---------------------------------------------Error handing Implementation----------------------------------------------*/
+			/*Handles wrong HTTP version, file not present on server*/
 			else
 			{
 				printf("\nError on request\n");
