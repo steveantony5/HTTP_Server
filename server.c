@@ -117,8 +117,9 @@ int main(int argc, char *argv[])
 		}
 	
 		/*Creating child processes*/
-		/*Returns zero on successful child creation*/
-		if(!fork())
+		/*Returns zero to child process if there is successful child creation*/
+		int32_t child_id = fork();
+		if(!child_id)
 		{
 start:
 			memset(request,0,HEADER);
@@ -384,9 +385,14 @@ file_open:		fp = NULL;
 				close(new_socket);
 				printf("Closing socket\n");
 			}
-		
+			/*Exit the child process*/	
 			exit(0);
 				
+		}
+		/*Error handling if the child process is not created*/
+		else if(child_id < 0)
+		{
+			error("Error on creating child");
 		}
 		close(new_socket);
 
