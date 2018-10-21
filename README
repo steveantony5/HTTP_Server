@@ -19,6 +19,8 @@ GET method
 
 	<server address>:<port number>/<url of the file path>
 
+eg:     127.0.0.1:8000/images/wine3.jpg
+
 3) Error handling have been done to check if the requested file is present on the server folder
 4) Pipelining has been implemented with a socket timout of 10 seconds.
 5) Supports any file type
@@ -31,7 +33,10 @@ POST method
 1) Accepts get requests from terminal.
 2) Steps to invoke POST method
 
-	(echo -en "POST /index.html HTTP/1.1\nHost: localhost\nConnection: keep-alive\nPOSTDATA"; sleep 5") | telnet <server address> <port number>
+	(echo -en "POST /<file path> <HTTP/version>\nHost: localhost\nConnection: keep-alive\n\n<POSTDATA>"; sleep 5) | telnet <server address> <port number>
+	
+    eg: (echo -en "POST /files/text1.txt HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\nThis is postdata"; sleep 5) | telnet 127.0.0.1 8000
+
 
 3) Error handling have been done to check if the requested file is present on the server folder
 4) Supports any file type
@@ -39,9 +44,13 @@ POST method
 ------------------------------------------------------------------------------------------
 
 Implementation of Pipelining:
-1) If the request contains "Connection: keep-active" , the socket is kept active for 10 seconds and servers any request received in the same socket.
+1) If the request contains "Connection: keep-active" , the socket is kept active for 10 seconds and serves any request received in the same socket.
 2) Steps to test pipelining
 
-	(echo -en "GET /index.html HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\n"; sleep 5; echo -en "GET /index.html HTTP/1.1\nHost: localhost\n\n") | telnet <server address> <port number>
+	(echo -en "GET /<file path> HTTP/<version>\nHost: localhost\nConnection: keep-alive\n\n"; sleep <time in seconds>; echo -en "GET /<file path> HTTP/<version>\nHost: localhost\n\n") | telnet <server address> <port number>
+
+eg:     (echo -en "GET /files/text1.txt HTTP/1.0\nHost: localhost\nConnection: keep-alive\n\n"; sleep 5; echo -en "GET /files/text1.txt HTTP/1.0\nHost: localhost\n\n") | telnet 127.0.0.1 8000
+
+3) Pipelining is implemented for POST, GET and error messages.
 
 -----------------------------------------------------------------------------------------

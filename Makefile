@@ -1,7 +1,7 @@
 #makefile for server
 
 CC = gcc
-Flags = -Wall
+Flags = -Wall -g
 
 server : server.c
 
@@ -9,3 +9,7 @@ server : server.c
 
 clean:
 	rm -f server
+
+run:
+	./server 8000
+

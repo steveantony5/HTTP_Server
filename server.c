@@ -418,7 +418,7 @@ file_open:		fp = NULL;
 
 	}
 	close(server_socket);
-	return 0;
+	exit(EXIT_SUCCESS);
 }
 
 
