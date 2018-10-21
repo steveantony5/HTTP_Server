@@ -121,25 +121,21 @@ int main(int argc, char *argv[])
 		{
 			printf("Connection established...\n");
 		}
-	
+		
+		/*Clearing the request variable*/
+		memset(request,0,HEADER);
+
 		/*Creating child processes*/
 		/*Returns zero to child process if there is successful child creation*/
 		int32_t child_id = fork();
-		if(!child_id)
+		while((!child_id) && ( recv(new_socket,request, HEADER,0) > 0))
 		{
-start:
-			memset(request,0,HEADER);
+
+			//memset(request,0,HEADER);
 			memset(method,0,10);
 			memset(url,0,20);
 			memset(version,0,10);
 			
-			/*Receiving the request from client*/
-			recv(new_socket,request, HEADER,0);
-
-			/*If no request received, close the active socket*/
-			if(strlen(request) == 0)
-			        goto end;
-
 			printf("\n%s",request);
 		
 				
@@ -277,17 +273,6 @@ file_open:		fp = NULL;
 
 
 				fclose(fp);
-				if(alive!=NULL)
-		                {
-		                        printf("\nSocket still active\n");
-					goto start;
-		                }
-		                else
-		                {
-		                        close(new_socket);
-		                        printf("Closing socket\n");
-		                }
-
 
 			}
 			/*--------------------------------------------------POST Request------------------------------------------------------------------*/
@@ -342,7 +327,8 @@ file_open:		fp = NULL;
                                  strcat(response,content_type);
                                  strcat(response,"\r\nContent-Length:");
                                  strcat(response,length_str);
-		                 strcat(response,"\r\nConnection:");
+
+				 strcat(response,"\r\nConnection:");
 				 if(alive!=NULL)
 			     	 {
 				        strcat(response,"keep-alive");
@@ -352,6 +338,7 @@ file_open:		fp = NULL;
 				        strcat(response,"close");
 				 }
 				 strcat(response,"\r\n\r\n");
+
 				 write(new_socket,response,strlen(response));
 				 printf("Response\n%s",response);
 
@@ -368,18 +355,6 @@ file_open:		fp = NULL;
 				}
 
 				fclose(fp);
-
-				if(alive!=NULL)
-				{
-				         printf("\nSocket still active\n");
-					 goto start;
-				}
-				else
-				{
-				         close(new_socket);
-				         printf("Closing socket\n");
-				}
-
 
 			}
 
@@ -423,23 +398,20 @@ file_open:		fp = NULL;
 				write(new_socket,message,strlen(message));
 				printf("\n*************************************\n");
 			
-				if(alive!=NULL)
-	        		{
-				        printf("\nSocket still active\n");
-					goto start;
-				}
-				else
-				{
-				        close(new_socket);
-				        printf("Closing socket\n");
-				}
-
 			}
-end:
-			close(new_socket);	
-			/*Exit the child process*/	
-			exit(EXIT_SUCCESS);
-				
+			
+			/*Checking connection inactive and iclosing the socket*/
+			/*if connection is active, while loop is executed again without closing the socket*/
+			if(alive == NULL)
+			{
+				close(new_socket);	
+				/*Exit the child process*/	
+				exit(EXIT_SUCCESS);
+			}
+
+			/*Clearing for next request*/
+			memset(request,0,HEADER);
+
 		}
 		close(new_socket);
 
