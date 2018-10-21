@@ -20,6 +20,7 @@
 #include<fcntl.h>
 #include<sys/stat.h>
 #include<stdint.h>
+#include<errno.h>
 
 /*Header length*/
 #define HEADER (500)
@@ -35,12 +36,6 @@
 
 /*File to be shown on default when url is given as '/'*/
 #define DEFAULT_FILE ("index.html")
-
-/*Error Function*/
-void error(char *string)
-{
-	printf("%s\n",string);
-}
 
 /*Main function*/
 int main(int argc, char *argv[])
@@ -67,8 +62,8 @@ int main(int argc, char *argv[])
 
 	if(argc<2)// passing port number as command line argument
 	{
-	        error("Please provide port number");
-	        exit(1);
+	        perror("Please provide port number");
+	        exit(EXIT_FAILURE);
         }
 	
 	socklen_t clilen;
@@ -77,8 +72,8 @@ int main(int argc, char *argv[])
 	if(server_socket < 0)
 	{
 
-		error("error on socket creation");
-		exit(1);
+		perror("error on socket creation");
+		exit(EXIT_FAILURE);
 	}
 	memset(&server_address,0,sizeof(server_address));
 
@@ -86,7 +81,8 @@ int main(int argc, char *argv[])
 	int true = 1;
 	if(setsockopt(server_socket,SOL_SOCKET,SO_REUSEADDR,&true,sizeof(int)) < 0)
 	{
-		error("error on setsocket");
+		perror("error on setsocket");
+		exit(EXIT_FAILURE);
 	}
 
 	server_address.sin_family = AF_INET;
@@ -96,13 +92,15 @@ int main(int argc, char *argv[])
 	/*bind the server socket with the remote client socket*/
 	if(bind(server_socket,(struct sockaddr*)&server_address,sizeof(server_address))<0)
 	{
-		error("Binding failed");
+		perror("Binding failed");
+		exit(EXIT_FAILURE);
 	}
 
 	/*Listening for clients*/
 	if(listen(server_socket,LISTEN_MAX) < 0)
 	{
-		error("Error on listen");
+		perror("Error on listen");
+		exit(EXIT_FAILURE);
 	}
 	else
 		printf("\nlistening.....\n");
@@ -117,11 +115,11 @@ int main(int argc, char *argv[])
 		new_socket = accept(server_socket,(struct sockaddr*) &to_address, &clilen);
 		if(new_socket<0)
 		{
-			error("error on accept");
+			perror("error on accepting client");
 		}
 		else
 		{
-			error("Connection established...");
+			printf("Connection established...\n");
 		}
 	
 		/*Creating child processes*/
@@ -138,8 +136,13 @@ start:
 			/*Receiving the request from client*/
 			recv(new_socket,request, HEADER,0);
 
+			/*If no request received, close the active socket*/
+			if(strlen(request) == 0)
+			        goto end;
+
 			printf("\n%s",request);
-			
+		
+				
 			/*Pipelining*/
 			char *alive = strstr(request,"Connection: keep-alive");
 			if(alive!=NULL)
@@ -154,9 +157,6 @@ start:
 			        setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
 			}
 
-			/*If no request received, close the active socket*/
-			if(strlen(request) == 0)
-				break;
 
 			/*separating the parameters from request string*/
 		 	sscanf(request,"%s%s%s",method, url, version);
@@ -200,12 +200,16 @@ file_open:		fp = NULL;
 			{
 				/*Checks if the file exists*/
 				if(fseek(fp,0,SEEK_END) < 0)
-					error("error on seek");
+					perror("error on seek");
 
 				/*Calculates file size*/	
 				file_size= ftell(fp);
 				if(fseek(fp,0,SEEK_SET) < 0)
-					error("error on seek");
+					perror("error on seek");
+			}
+			else
+			{
+				printf("error on opening the file");
 			}
 
 			/*------------------------------------------------------GET Request-----------------------------------------------------------*/
@@ -226,7 +230,8 @@ file_open:		fp = NULL;
 				}
 				else
 				{
-					char *pt = strrchr(url,'.');
+					char *pt = NULL;
+					pt = strrchr(url,'.');
 					strcpy(content_type,pt);
 				}
 			
@@ -270,10 +275,12 @@ file_open:		fp = NULL;
 					printf("\n*********************************\n");
 				}
 
+
+				fclose(fp);
 				if(alive!=NULL)
 		                {
 		                        printf("\nSocket still active\n");
-		                        goto start;
+					goto start;
 		                }
 		                else
 		                {
@@ -360,10 +367,12 @@ file_open:		fp = NULL;
 					 printf("\n*********************************\n");
 				}
 
+				fclose(fp);
+
 				if(alive!=NULL)
 				{
 				         printf("\nSocket still active\n");
-				         goto start;
+					 goto start;
 				}
 				else
 				{
@@ -413,11 +422,11 @@ file_open:		fp = NULL;
 
 				write(new_socket,message,strlen(message));
 				printf("\n*************************************\n");
-				
+			
 				if(alive!=NULL)
 	        		{
 				        printf("\nSocket still active\n");
-				        goto start;
+					goto start;
 				}
 				else
 				{
@@ -426,16 +435,11 @@ file_open:		fp = NULL;
 				}
 
 			}
-			fclose(fp);
-			
+end:
+			close(new_socket);	
 			/*Exit the child process*/	
-			exit(0);
+			exit(EXIT_SUCCESS);
 				
-		}
-		/*Error handling if the child process is not created*/
-		else if(child_id < 0)
-		{
-			error("Error on creating child");
 		}
 		close(new_socket);
 
