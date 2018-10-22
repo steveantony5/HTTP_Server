@@ -128,6 +128,11 @@ int main(int argc, char *argv[])
 		/*Creating child processes*/
 		/*Returns zero to child process if there is successful child creation*/
 		int32_t child_id = fork();
+		if(child_id < 0)
+		{
+			perror("error on creating child\n");
+		}
+
 		while((!child_id) && ( recv(new_socket,request, HEADER,0) > 0))
 		{
 

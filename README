@@ -6,8 +6,10 @@ To execute the server
 
 eg: ./server 8000
 
+
+
 -----------------------------------------------------------------------------------------
-HTTP methods implemented: GET, POST along with Pipelining and accepts multiple clients
+HTTP methods implemented: GET, POST along with Pipelining has been implemented. Also the server can  accept multiple clients
 			  Supports HTTP version 1.0 and 1.1
 ----------------------------------------------------------------------------------------
 
