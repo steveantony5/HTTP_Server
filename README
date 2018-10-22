@@ -23,9 +23,8 @@ GET method
 
 eg:     127.0.0.1:8000/images/wine3.jpg
 
-3) Error handling have been done to check if the requested file is present on the server folder
-4) Pipelining has been implemented with a socket timout of 10 seconds.
-5) Supports any file type
+3) Pipelining has been implemented with a socket timout of 10 seconds.
+4) Supports any file type
 
 ----------------------------------------------------------------------------------------
 
@@ -40,11 +39,21 @@ POST method
     eg: (echo -en "POST /files/text1.txt HTTP/1.1\nHost: localhost\nConnection: keep-alive\n\nThis is postdata"; sleep 5) | telnet 127.0.0.1 8000
 
 
-3) Error handling have been done to check if the requested file is present on the server folder
-4) Supports any file type
+3) Supports any file type
 
 ------------------------------------------------------------------------------------------
+Error Handling
+--------------
+File existance:
+	Checks if the requested file is present on server
 
+HTTP version:
+	Supports HTTP version 1.0 and 1.1
+
+Methods:
+	Supports HTTP methods GET, POST requests
+
+-----------------------------------------------------------------------------------------
 Implementation of Pipelining:
 1) If the request contains "Connection: keep-active" , the socket is kept active for 10 seconds and serves any request received in the same socket.
 2) Steps to test pipelining
